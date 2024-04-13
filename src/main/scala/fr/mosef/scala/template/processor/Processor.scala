@@ -6,4 +6,5 @@ trait Processor {
 
   def process(inputDF: DataFrame) : DataFrame
 
+
 }

@@ -5,32 +5,22 @@ import fr.mosef.scala.template.processor.Processor
 import fr.mosef.scala.template.processor.impl.ProcessorImpl
 import fr.mosef.scala.template.reader.Reader
 import fr.mosef.scala.template.reader.impl.ReaderImpl
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import fr.mosef.scala.template.writer.Writer
 
 object Main extends App with Job {
-
   val cliArgs = args
-  val MASTER_URL: String = try {
-    cliArgs(0)
-  } catch {
-    case e: java.lang.ArrayIndexOutOfBoundsException => "local[1]"
+  val MASTER_URL: String = cliArgs.lift(0).getOrElse("local[1]")
+  val SRC_PATH: String = cliArgs.lift(1).getOrElse {
+    println("No input defined")
+    sys.exit(1)
   }
-  val SRC_PATH: String = try {
-    cliArgs(1)
-  } catch {
-    case e: java.lang.ArrayIndexOutOfBoundsException => {
-      print("No input defined")
-      sys.exit(1)
-    }
-  }
-  val DST_PATH: String = try {
-    cliArgs(2)
-  } catch {
-    case e: java.lang.ArrayIndexOutOfBoundsException => {
-      "./default/output-writer"
-    }
-  }
+  val DST_PATH: String = cliArgs.lift(2).getOrElse("./default/output-writer")
+  val OUTPUT_FORMAT: String = cliArgs.lift(3).getOrElse("csv") // Assuming that the format is passed as the fourth argument
+
+  // Implementation of Job trait requirements
+  override val src_path: String = SRC_PATH
+  override val dst_path: String = DST_PATH
 
   val sparkSession = SparkSession
     .builder
@@ -41,10 +31,15 @@ object Main extends App with Job {
   val reader: Reader = new ReaderImpl(sparkSession)
   val processor: Processor = new ProcessorImpl()
   val writer: Writer = new Writer()
-  val src_path = SRC_PATH
-  val dst_path = DST_PATH
 
-  val inputDF = reader.read(src_path)
+  val inputDF = SRC_PATH.split("\\.").lastOption match {
+    case Some("csv") => reader.read(SRC_PATH, "csv", Map("header" -> "true", "inferSchema" -> "true"))
+    case Some("parquet") => reader.readParquet(SRC_PATH)
+    case _ => throw new IllegalArgumentException("Unsupported file format")
+  }
+
   val processedDF = processor.process(inputDF)
-  writer.write(processedDF, "overwrite", dst_path)
+  writer.write(processedDF, OUTPUT_FORMAT, dst_path) // Use OUTPUT_FORMAT instead of "overwrite"
+
+  sparkSession.stop()
 }

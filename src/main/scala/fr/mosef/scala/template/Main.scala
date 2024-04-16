@@ -16,9 +16,8 @@ object Main extends App with Job {
     sys.exit(1)
   }
   val DST_PATH: String = cliArgs.lift(2).getOrElse("./default/output-writer")
-  val OUTPUT_FORMAT: String = cliArgs.lift(3).getOrElse("csv") // Assuming that the format is passed as the fourth argument
+  val OUTPUT_FORMAT: String = cliArgs.lift(3).getOrElse("csv")
 
-  // Implementation of Job trait requirements
   override val src_path: String = SRC_PATH
   override val dst_path: String = DST_PATH
 
@@ -39,7 +38,7 @@ object Main extends App with Job {
   }
 
   val processedDF = processor.process(inputDF)
-  writer.write(processedDF, OUTPUT_FORMAT, dst_path) // Use OUTPUT_FORMAT instead of "overwrite"
+  writer.write(processedDF, OUTPUT_FORMAT, dst_path)
 
   sparkSession.stop()
 }

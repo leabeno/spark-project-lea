@@ -1,7 +1,6 @@
 /build.sbt
 .DS_Store
 /.idea/
-.DS_Store
 /.bsp/
 /target/
 /project/
